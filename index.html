@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morse Code Time Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <footer>
+            <p class="watermark"> </p>
+            <p class="credit">By:Ayush Kaushik A.M(CNS), RCDU, AAI</p>
+        </footer>
+
+    <h1>Morse Code Time Calculator</h1>
+    <label for="ident">Enter 3-4 character ident (e.g., SOS, ABC):</label>
+    <input type="text" id="ident" maxlength="4" placeholder="Enter Ident">
+    <button id="calculate">Calculate Time</button>
+    <p id="result"></p>
+   
+      <h1>Frequency Accuracy Calculator</h1>
+
+    <label for="assigned-frequency">Assigned Frequency (MHz):</label>
+    <input type="number" id="assigned-frequency" placeholder="Enter Assigned Frequency">
+
+    <label for="offset">Offset (KHz):</label>
+    <input type="number" id="offset" placeholder="Enter Offset Value">
+
+    <label for="offset-operation">Offset Operation:</label>
+    <select id="offset-operation">
+      <option value="add">Add</option>
+      <option value="subtract">Subtract</option>
+    </select>
+
+    <label for="calculated-frequency">Measured Frequency (MHz):</label>
+    <input type="number" id="calculated-frequency" placeholder="Enter Calculated Frequency">
+
+    <button id="calculate1">Calculate Accuracy</button>
+    <p id="result1"></p>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

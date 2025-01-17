@@ -22,12 +22,13 @@ body {
 h1 {
   font-size: 25px;
   margin-bottom: 20px;
+  text-decoration: underline;
   
 }
 h2 {
   font-size: 30px;
   margin-bottom: 20px;
-  text-decoration: underline;
+  
 }
 
 label {

@@ -1,24 +1,55 @@
-body {
-  display: block; /* Allow vertical scroll layout */
-  justify-content: center;
-  align-items: center;
-  min-height: auto;
-  height: auto;
-  overflow-y: auto; /* Enable scrolling */
-  padding-bottom: 80px; /* Space so footer doesn't overlap */
+/* Make html/body fill the screen and allow vertical scrolling */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;   /* smooth scroll when jumping */
+  background-color: SKYBLUE; /* keep your color */
 }
 
 
+/* Use the body as a scroll container with snap points */
+body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y mandatory; /* snap vertically between sections */
+  box-sizing: border-box;
+  padding-bottom: 80px; /* space for footer/credit so it doesn't overlap content */
+}
+
+
+/* Each container becomes a full-screen section */
 .container {
+  min-height: 100vh;            /* fill full viewport height */
+  display: flex;
+  flex-direction: column;       /* stack contents vertically inside */
+  justify-content: center;      /* center vertically */
+  align-items: center;          /* center horizontally */
+  padding: 30px 40px;           /* comfortable inner spacing */
+  margin: 0 auto;               /* center horizontally */
+  width: 100%;
+  max-width: 1200px;
+  box-sizing: border-box;
+
+  /* keep your look & colors */
   background: LIGHTYELLOW;
-  padding: 30px 40px;
   border-radius: 20px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(0,0,0,0.08);
   text-align: center;
-  max-width: 900px;
+
+  /* make each container a snap point */
+  scroll-snap-align: start;
+}
+/* If you have multiple containers stacked, give spacing between them on large screens */
+.container + .container {
+  margin-top: 30px;
+}
+
+/* Make sure inner content doesn't overflow the section on small screens */
+.container > * {
+  max-width: 980px;
   width: 100%;
-  margin-bottom: 40px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 h1 {

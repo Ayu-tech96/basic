@@ -103,229 +103,239 @@ document.getElementById("calculate1").addEventListener("click", function () {
 
 
 
-// ----------------------------------------------------
-// LLZ -> GP mapping table (used by DME lookup below)
-// ----------------------------------------------------
-// Key format must match navFreqMHz.toFixed(2) (e.g. "108.10")
-const llzToGpMapX = {
-  "108.10": "334.70",
-  "108.30": "334.10",
-  "108.50": "329.90",
-  "108.70": "330.50",
-  "108.90": "329.30",
-  "109.10": "311.40",
-  "109.30": "322.00",
-  "109.50": "332.6",
-  "109.70": "333.20",
-  "109.90": "333.80",
-  "110.10": "334.40",
-  "110.30": "335.00",
-  "110.50": "329.60",
-  "110.70": "330.20",
-  "110.90": "330.80",
-  "111.10": "331.70",
-  "111.30": "332.30",
-  "111.50": "332.90",
-  "111.70": "333.50",
-  "111.90": "331.10" 
-  // Add more LLZ:GP pairs as needed. Keep keys as strings with two decimals.
-};
+ const llzToGpMapX = {
+          "108.10": "334.70", "108.30": "334.10", "108.50": "329.90", "108.70": "330.50",
+          "108.90": "329.30", "109.10": "311.40", "109.30": "322.00", "109.50": "332.60",
+          "109.70": "333.20", "109.90": "333.80", "110.10": "334.40", "110.30": "335.00",
+          "110.50": "329.60", "110.70": "330.20", "110.90": "330.80", "111.10": "331.70",
+          "111.30": "332.30", "111.50": "332.90", "111.70": "333.50", "111.90": "331.10"
+        };
+        
+        const llzToGpMapY = {
+          "108.15": "334.55", "108.35": "333.95", "108.55": "329.75", "108.75": "330.35",
+          "108.95": "329.15", "109.15": "331.25", "109.35": "331.85", "109.55": "332.45",
+          "109.75": "333.05", "109.95": "333.65", "110.15": "334.25", "110.35": "334.85",
+          "110.55": "329.45", "110.75": "330.05", "110.95": "330.65", "111.15": "331.55",
+          "111.35": "332.15", "111.55": "332.75", "111.75": "333.35", "111.95": "330.95",
+        };
+        
+        // ----------------------------------------------------
+        // Helper Function to Clear Results
+        // ----------------------------------------------------
+        function clearDmeResults() {
+            document.getElementById('channelIdentifier').textContent = '---';
+            document.getElementById('navFreq').innerHTML = '---';
+            document.getElementById('dmeFreqTxA').textContent = '---';
+            document.getElementById('dmeFreqRxA').textContent = '---';
+            document.getElementById('errorMsg').textContent = '';
+        }
 
-const llzToGpMapY = {
-  "108.15": "334.55",
-  "108.35": "333.95",
-  "108.55": "329.75",
-  "108.75": "330.35",
-  "108.95": "329.15",
-  "109.15": "331.25",
-  "109.35": "331.85",
-  "109.55": "332.45",
-  "109.75": "333.05",
-  "109.95": "333.65",
-  "110.15": "334.25",
-  "110.35": "334.85",
-  "110.55": "329.45",
-  "110.75": "330.05",
-  "110.95": "330.65",
-  "111.15": "331.55",
-  "111.35": "332.15",
-  "111.55": "332.75",
-  "111.75": "333.35",
-  "111.95": "330.95",
-  // Add mapping pairs for Y side here
-};
+        // ----------------------------------------------------
+        // NEW FUNCTION 1: VOR/ILS Freq -> DME Channel Lookup
+        // ----------------------------------------------------
+        function lookupChannelFromNavFreq() {
+            clearDmeResults(); 
 
-// Optional: a function to lookup GP by LLZ string input (standalone UI)
-function lookupGPFromLLZString(llzString) {
-  if (!llzString) return null;
-  // Normalize: allow inputs like "108.1" or "108.10" -> convert to two decimals
-  const n = parseFloat(llzString);
-  if (isNaN(n)) return null;
-  const key = n.toFixed(2);
-  return llzToGpMap.hasOwnProperty(key) ? llzToGpMap[key] : null;
-}
+            const navFreqInput = document.getElementById('navFreqInput').value.trim();
+            const F = parseFloat(navFreqInput);
 
-// If your HTML includes a simple LLZ lookup UI (ids: llzFreq, lookupLLZ, gpFreq), wire it up:
-if (document.getElementById("lookupLLZ")) {
-  document.getElementById("lookupLLZ").addEventListener("click", function () {
-    const llzInput = document.getElementById("llzFreq").value.trim();
-    const gpDisplay = document.getElementById("gpFreq");
-    gpDisplay.textContent = '---';
-    const gp = lookupGPFromLLZString(llzInput);
-    gpDisplay.textContent = gp ? `${gp} MHz` : 'Not found';
-  });
-}
-
-
-
-// ----------------------------------------------------
-// DME Channel/Frequency lookup logic (your original)
-// ----------------------------------------------------
-function lookupFrequencies() {
-    // 1. Get Inputs
-    const channelInput = document.getElementById('dmeChannel').value.trim();
-    const type = document.getElementById('channelTypeSelect').value;
-    const channelNumber = parseInt(channelInput);
-
-    // 2. Clear previous results & setup
-    const errorMsg = document.getElementById('errorMsg');
-    errorMsg.textContent = '';
-
-    document.getElementById('channelIdentifier').textContent = '---';
-    document.getElementById('navFreq').innerHTML = '<p>---</p>';
-    document.getElementById('dmeFreqTxA').textContent = '---';
-    document.getElementById('dmeFreqRxA').textContent = '---';
-
-    // 3. Input Validation
-    if (isNaN(channelNumber) || channelNumber < 1 || channelNumber > 126) {
-        errorMsg.textContent = "Invalid DME channel number. Please enter a number between 1 and 126.";
-        return;
-    }
-
-    // Display the full channel identifier
-    document.getElementById('channelIdentifier').textContent = `${channelNumber}${type}`;
-
-    // 4. VHF NAV Frequency (VOR/ILS) and Associated Service Determination (ICAO Standard)
-    let navFreqMHz;
-    let serviceType;
-    let associatedGP = "N/A";
-    const K = 63.0; // The fixed 63 MHz offset (used in both sections)
-
-    // ICAO VOR/ILS Frequency Calculation
-    if (channelNumber >= 17 && channelNumber <= 56 && type=='X') {
-        navFreqMHz = 108.00 + 0.1 * (channelNumber - 17);
-    } else if (channelNumber >= 57 && channelNumber <= 59 && type=='X') {
-        navFreqMHz = 112.00 + 0.1 * (channelNumber - 57);
-    }
-    else if (channelNumber >= 70 && channelNumber <= 126 && type=='X') {
-        navFreqMHz = 112.3 + 0.1 * (channelNumber - 70);
-    }
-    else if (channelNumber >= 17 && channelNumber <= 56 && type=='Y') {
-        navFreqMHz = 108.05 + 0.1 * (channelNumber - 17);
-    }
-    else if (channelNumber >= 57 && channelNumber <= 59 && type=='Y') {
-        navFreqMHz = 112.05 + 0.1 * (channelNumber - 57);
-    }
-    else if (channelNumber >= 70 && channelNumber <= 126 && type=='Y') {
-        navFreqMHz = 112.35 + 0.1 * (channelNumber - 70);
-    }
-    else {
-        errorMsg.textContent = "NOT ANY ASSOCIATED NAVAIDS";
-        let groundTx; // Ground Transmit (Aircraft Receive)
-        let groundRx; // Ground Receive (Aircraft Transmit)
-
-        if (type === 'X') {
-            if (channelNumber >= 1 && channelNumber <= 63) {
-                // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX - K
-                groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-                groundTx = groundRx - K; // Aircraft RX
-            } else if (channelNumber >= 64 && channelNumber <= 126) {
-                // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX + K
-                groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-                groundTx = groundRx + K; // Aircraft RX
+            if (isNaN(F) || F < 108.00 || F > 117.95) {
+                document.getElementById('errorMsg').textContent = "Invalid NAV frequency. Enter a value between 108.00 and 117.95 MHz.";
+                return;
             }
-        } else if (type === 'Y') {
-            if (channelNumber >= 1 && channelNumber <= 63) {
-                // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX + K
-                groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-                groundTx = groundRx + K; // Aircraft RX
-            } else if (channelNumber >= 64 && channelNumber <= 126) {
-                // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX - K
-                groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-                groundTx = groundRx - K; // Aircraft RX
+
+            let channelNumber = 0;
+            let channelType = '';
+            const F_fixed = F.toFixed(2); // Use fixed string for accurate comparison
+
+            // Reverse ICAO Pairing Logic
+            // X Channels (ends in .00, .20, .40, .60, .80)
+            if (F_fixed.slice(-1) === '0') {
+                if (F >= 108.10 && F <= 111.90) { // ILS/LLZ
+                    channelNumber = Math.round((F - 108.00) / 0.1 + 17);
+                    channelType = 'X';
+                } else if (F >= 112.00 && F <= 112.20) { // VOR (57X-59X)
+                    channelNumber = Math.round((F - 112.00) / 0.1 + 57);
+                    channelType = 'X';
+                } else if (F >= 112.30 && F <= 117.90) { // VOR (70X-126X)
+                    channelNumber = Math.round((F - 112.30) / 0.1 + 70);
+                    channelType = 'X';
+                }
+            }
+            // Y Channels (ends in .05, .25, .45, .65, .85)
+            else if (F_fixed.slice(-1) === '5') {
+                if (F >= 108.05 && F <= 111.95) { // ILS/LLZ
+                    channelNumber = Math.round((F - 108.05) / 0.1 + 17);
+                    channelType = 'Y';
+                } else if (F >= 112.05 && F <= 112.25) { // VOR (57Y-59Y)
+                    channelNumber = Math.round((F - 112.05) / 0.1 + 57);
+                    channelType = 'Y';
+                } else if (F >= 112.35 && F <= 117.95) { // VOR (70Y-126Y)
+                    channelNumber = Math.round((F - 112.35) / 0.1 + 70);
+                    channelType = 'Y';
+                }
+            }
+            
+            // Validate if a valid channel was found
+            if (channelNumber >= 17 && channelNumber <= 126) {
+                // Pass the found channel and type to the original lookup function
+                document.getElementById('dmeChannel').value = channelNumber;
+                document.getElementById('channelTypeSelect').value = channelType;
+                lookupFrequencies();
+            } else {
+                document.getElementById('errorMsg').textContent = `NAV Frequency ${F_fixed} MHz is not a standard ILS/VOR frequency associated with a DME Channel.`;
             }
         }
-        document.getElementById('dmeFreqTxA').textContent = `${groundRx.toFixed(1)} MHz`; // Aircraft TX = Ground RX
-        document.getElementById('dmeFreqRxA').textContent = `${groundTx.toFixed(1)} MHz`; // Aircraft RX = Ground TX
-        return;
-    }
 
-    // Determine the associated service based on ICAO Annex 10 pairing rules
-    const freqDecimals = navFreqMHz.toFixed(2).split('.')[1];
+        // ----------------------------------------------------
+        // NEW FUNCTION 2: LLZ Freq -> GP Freq Lookup (Standalone)
+        // ----------------------------------------------------
+        function lookupGPFromLLZFreq() {
+            const llzInput = document.getElementById('llzFreqInput').value.trim();
+            const gpDisplay = document.getElementById('gpFreqDisplay');
+            gpDisplay.textContent = '---';
 
-    if (navFreqMHz >= 112) {
-        serviceType = "VOR";
-    } else {
-        serviceType = "ILS";
-    }
+            // Normalize input
+            const n = parseFloat(llzInput);
+            if (isNaN(n) || n < 108.10 || n > 111.95) {
+                gpDisplay.textContent = 'Invalid LLZ Freq (108.10 - 111.95)';
+                return;
+            }
+            const key = n.toFixed(2);
 
-    // ----- NEW: lookup GP mapping using llzToGpMap -----
-    const navKey = navFreqMHz.toFixed(2); // key format matches mapping
-    const foundGPX = llzToGpMapX.hasOwnProperty(navKey) ? llzToGpMapX[navKey] : null;
-  const foundGPY = llzToGpMapY.hasOwnProperty(navKey) ? llzToGpMapY[navKey] : null;
-    
-  if (type === 'X'){
-    if (foundGPX) {
-        associatedGP = `${foundGPX} MHz`;
-    } else {
-        associatedGP = "N/A"; // mapping not present
-    }}
-  else {
-    if (foundGPY) {
-        associatedGP = `${foundGPY} MHz`;
-    } else {
-        associatedGP = "N/A"; // mapping not present
-    }
-  }
-    // ---------------------------------------------------
+            // Look up in both X and Y maps
+            const gpX = llzToGpMapX.hasOwnProperty(key) ? llzToGpMapX[key] : null;
+            const gpY = llzToGpMapY.hasOwnProperty(key) ? llzToGpMapY[key] : null;
 
-    // Display VOR/ILS Frequency and Service + Associated GP (if found)
-    document.getElementById('navFreq').innerHTML = `
-        <p><strong>${serviceType }</strong> ${navFreqMHz.toFixed(2)} MHz</p>
-        <p><small>Associated Glide Path (GP): ${associatedGP}</small></p>
-    `;
+            let result = '';
 
-    // 5. DME Frequency Calculation (UHF) - USING YOUR CUSTOM FORMULAS
-    let groundTx; // Ground Transmit (Aircraft Receive)
-    let groundRx; // Ground Receive (Aircraft Transmit)
+            if (gpX && gpY) {
+                // This shouldn't occur for standard ICAO pairing, but handles edge cases if mapping tables overlap
+                result = `X: ${gpX} MHz, Y: ${gpY} MHz`;
+            } else if (gpX) {
+                result = `X Channel GP: ${gpX} MHz`;
+            } else if (gpY) {
+                result = `Y Channel GP: ${gpY} MHz`;
+            } else {
+                result = 'No associated Glide Path found in mapping tables for ' + key + ' MHz.';
+            }
 
-    if (type === 'X') {
-        if (channelNumber >= 1 && channelNumber <= 63) {
-            // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX - K
-            groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-            groundTx = groundRx - K; // Aircraft RX
-        } else if (channelNumber >= 64 && channelNumber <= 126) {
-            // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX + K
-            groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-            groundTx = groundRx + K; // Aircraft RX
+            gpDisplay.textContent = result;
         }
-    } else if (type === 'Y') {
-        if (channelNumber >= 1 && channelNumber <= 63) {
-            // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX + K
-            groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-            groundTx = groundRx + K; // Aircraft RX
-        } else if (channelNumber >= 64 && channelNumber <= 126) {
-            // Formula: Ground RX = 1025 + (Channel - 1) * 1; Ground TX = Ground RX - K
-            groundRx = 1025 + (channelNumber - 1) * 1; // Aircraft TX
-            groundTx = groundRx - K; // Aircraft RX
+
+        // ----------------------------------------------------
+        // Original lookupFrequencies (DME Channel -> All Frequencies)
+        // ----------------------------------------------------
+        function lookupFrequencies() {
+            // 1. Get Inputs
+            const channelInput = document.getElementById('dmeChannel').value.trim();
+            const type = document.getElementById('channelTypeSelect').value;
+            const channelNumber = parseInt(channelInput);
+            const K = 63.0; // The fixed 63 MHz offset
+
+            // 2. Clear previous error/setup
+            clearDmeResults();
+
+            // 3. Input Validation
+            if (isNaN(channelNumber) || channelNumber < 1 || channelNumber > 126) {
+                document.getElementById('errorMsg').textContent = "Invalid DME channel number. Please enter a number between 1 and 126.";
+                return;
+            }
+
+            // Display the full channel identifier
+            document.getElementById('channelIdentifier').textContent = `${channelNumber}${type}`;
+
+            // 4. VHF NAV Frequency (VOR/ILS) and Associated Service Determination
+            let navFreqMHz;
+            let serviceType;
+            let associatedGP = "N/A";
+
+            // ICAO VOR/ILS Frequency Calculation
+            if (channelNumber >= 17 && channelNumber <= 56 && type=='X') {
+                navFreqMHz = 108.00 + 0.1 * (channelNumber - 17);
+            } else if (channelNumber >= 57 && channelNumber <= 59 && type=='X') {
+                navFreqMHz = 112.00 + 0.1 * (channelNumber - 57);
+            } else if (channelNumber >= 70 && channelNumber <= 126 && type=='X') {
+                navFreqMHz = 112.30 + 0.1 * (channelNumber - 70);
+            } else if (channelNumber >= 17 && channelNumber <= 56 && type=='Y') {
+                navFreqMHz = 108.05 + 0.1 * (channelNumber - 17);
+            } else if (channelNumber >= 57 && channelNumber <= 59 && type=='Y') {
+                navFreqMHz = 112.05 + 0.1 * (channelNumber - 57);
+            } else if (channelNumber >= 70 && channelNumber <= 126 && type=='Y') {
+                navFreqMHz = 112.35 + 0.1 * (channelNumber - 70);
+            } 
+            
+            // Associated NAVAID Found
+            if (navFreqMHz) {
+                const navFreqFixed = navFreqMHz.toFixed(2);
+                if (navFreqMHz >= 112) {
+                    serviceType = "VOR";
+                } else {
+                    serviceType = "ILS (LLZ)";
+                }
+                
+                // Lookup associated GP if it's an ILS frequency
+                const map = (type === 'X') ? llzToGpMapX : llzToGpMapY;
+                const foundGP = map.hasOwnProperty(navFreqFixed) ? map[navFreqFixed] : null;
+
+                if (foundGP) {
+                    associatedGP = `${foundGP} MHz`;
+                }
+
+                // Display VOR/ILS Frequency and Service + Associated GP
+                document.getElementById('navFreq').innerHTML = `
+                    <p><strong>${serviceType }</strong> ${navFreqFixed} MHz</p>
+                    <p><small>Associated Glide Path (GP): ${associatedGP}</small></p>
+                `;
+            } else {
+                // Stand-alone DME Case
+                document.getElementById('navFreq').innerHTML = "N/A (Stand-Alone DME)";
+            }
+            
+            // 5. DME Frequency Calculation (UHF) - Applied to ALL channels 1-126
+            let groundTx; // Ground Transmit (Aircraft Receive)
+            let groundRx; // Ground Receive (Aircraft Transmit)
+            
+            // Ground RX (Aircraft TX): 1025 + (N-1)
+            groundRx = 1025 + (channelNumber - 1) * 1; 
+            
+            // Ground TX (Aircraft RX): Determine +/- K offset
+            const isLowerBand = (type === 'X' && channelNumber >= 1 && channelNumber <= 63) || 
+                               (type === 'Y' && channelNumber >= 64 && channelNumber <= 126);
+            
+            if (isLowerBand) {
+                groundTx = groundRx - K; // TX = RX - 63 MHz (Lower Band)
+            } else { 
+                groundTx = groundRx + K; // TX = RX + 63 MHz (Upper Band)
+            }
+
+            // 6. Display DME Results (Aircraft Perspective)
+            document.getElementById('dmeFreqTxA').textContent = `${groundRx.toFixed(1)} MHz`; // Aircraft TX = Ground RX
+            document.getElementById('dmeFreqRxA').textContent = `${groundTx.toFixed(1)} MHz`; // Aircraft RX = Ground TX
         }
-    }
 
-    // 6. Display DME Results (Aircraft Perspective)
-    document.getElementById('dmeFreqTxA').textContent = `${groundRx.toFixed(1)} MHz`; // Aircraft TX = Ground RX
-    document.getElementById('dmeFreqRxA').textContent = `${groundTx.toFixed(1)} MHz`; // Aircraft RX = Ground TX
-}
+        // ----------------------------------------------------
+        // Wiring (Connect the buttons to the functions)
+        // ----------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lookup 1: DME Channel -> Frequencies
+            const dmeLookupButton = document.getElementById('lookupDMEChannel');
+            if (dmeLookupButton) {
+                dmeLookupButton.addEventListener('click', lookupFrequencies);
+            }
+            
+            // Lookup 2: VOR/ILS Freq -> Channel & Frequencies
+            const navFreqLookupButton = document.getElementById('lookupNAVFreq');
+            if (navFreqLookupButton) {
+                navFreqLookupButton.addEventListener('click', lookupChannelFromNavFreq);
+            }
+            
+            // Lookup 3: LLZ Freq -> GP Freq Standalone Lookup
+            const llzFreqLookupButton = document.getElementById('lookupLLZFreq');
+            if (llzFreqLookupButton) {
+                llzFreqLookupButton.addEventListener('click', lookupGPFromLLZFreq);
+            }
 
-// Keep your original inline onclick or wire the button to lookupFrequencies
-// Example: if your button has onclick already, no change needed. Otherwise:
-// document.getElementById('yourLookupButtonId').addEventListener('click', lookupFrequencies);
+            // Run an initial lookup on load for example data (Channel 17X)
+            lookupFrequencies();
+        });

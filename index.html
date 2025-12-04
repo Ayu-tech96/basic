@@ -44,43 +44,64 @@
   </div>
 
   <div class="container">
-    <h1>DME Channel Lookup (ICAO)</h1>
+        <h1>✈️ Navaids Frequency Tool</h1>
 
-    <div class="input-group">
-      <label for="dmeChannel">Enter Channel Number:</label>
-      <input type="number" id="dmeChannel" min="1" max="126" placeholder="e.g., 50 or 115">
-    </div>
+    <section>
+        <h2>DME Channel & Type To All Frequencies</h2>
+        <p1>Enter the DME channel number and X/Y type to find the associated NAV and DME frequencies.</p1>
+        <label for="dmeChannel">DME Channel (1-126):</label>
+        <input type="text" id="dmeChannel" value="17" size="5">
+        <select id="channelTypeSelect">
+            <option value="X">X</option>
+            <option value="Y">Y</option>
+        </select>
+        <button id="lookupDMEChannel">Calculate Channel Frequency</button>
+    </section>
 
-    <div class="input-group">
-      <label for="channelTypeSelect">Channel Type:</label>
-      <select id="channelTypeSelect">
-        <option value="X">X Channel</option>
-        <option value="Y">Y Channel</option>
-      </select>
-    </div>
+    <section>
+        <h2>VOR/ILS Frequency To Associated Channel & Frequencies</h2>
+        <p1>Enter a VOR or ILS frequency (e.g., 108.10 or 115.50) to find the paired DME channel.</p1>
+        <label for="navFreqInput">NAV Frequency (MHz):</label>
+        <input type="text" id="navFreqInput" value="108.10" size="8">
+        <button id="lookupNAVFreq">Calculate Channel & Frequencies</button>
+    </section>
 
-    <button onclick="lookupFrequencies()">Lookup Frequencies</button>
+    <section>
+        <h2>LLZ Frequency To Glide Path (GP) Frequency</h2>
+        <p1>Enter an ILS Localizer frequency (108.10 - 111.95 MHz) to find the corresponding Glide Path frequency.</p1>
+        <label for="llzFreqInput">LLZ Frequency (MHz):</label>
+        <input type="text" id="llzFreqInput" value="109.90" size="8">
+        <button id="lookupLLZFreq">Lookup GP</button>
+        <p>Associated Glide Path: <strong id="gpFreqDisplay">---</strong></p>
+    </section>
 
-    <div id="results" class="results-box">
-      <h2>Results:</h2>
-      <p id="errorMsg" class="error"></p>
+    <hr>
 
-      <p><strong>Channel Selected:</strong> <span id="channelIdentifier">---</span></p>
-
-      <hr>
-
-      <h3>Associated VHF NAV Frequency:</h3>
-      <div id="navFreq">
-        <p>---</p>
-      </div>
-
-      <hr>
-
-      <h3>DME Frequencies (UHF):</h3>
-      <p><strong>Transmit Frequency (Ground Transmit/Reply):</strong> <span id="dmeFreqRxA">---</span></p>
-      <p><strong>Receive Frequency (Ground Receive/Interrogation):</strong> <span id="dmeFreqTxA">---</span></p>
-
-    </div>
+    <section>
+        <h2>Results</h2>
+        <p class="error" id="errorMsg"></p>
+        <table>
+            <tr>
+                <th>Channel ID</th>
+                <td><p id="channelIdentifier">---</p></td>
+            </tr>
+            <tr>
+                <th>VHF NAV Freq / Service</th>
+                <td id="navFreq">---</td>
+            </tr>
+         
+            <tr>
+                <th>DME Ground TX(Reply)</th>
+                <td><p id="dmeFreqRxA">---</p></td>
+            </tr>
+           <tr>
+                <th>DME Ground RX(Interrogation)</th>
+                <td><p id="dmeFreqTxA">---</p></td>
+            </tr> 
+          
+            
+        </table>
+    </section>
   </div>
 
   <script src="script.js"></script>
